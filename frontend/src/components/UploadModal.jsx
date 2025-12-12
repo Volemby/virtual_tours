@@ -9,6 +9,8 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState(null);
 
+    const [progress, setProgress] = useState(0);
+
     if (!isOpen) return null;
 
     const handleSubmit = async (e) => {
@@ -24,12 +26,17 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
         formData.append('coverPhoto', coverPhoto);
 
         setUploading(true);
+        setProgress(0);
         setError(null);
 
         try {
             await client.post('/tours/', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
+                },
+                onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    setProgress(percentCompleted);
                 },
             });
             onUploadSuccess();
@@ -51,6 +58,7 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
             }
         } finally {
             setUploading(false);
+            setProgress(0);
         }
     };
 
@@ -107,23 +115,26 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={uploading}
-                        className="w-full mt-6 py-2 px-4 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {uploading ? (
-                            <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Uploading...
-                            </>
-                        ) : (
-                            <>
-                                <Upload className="w-4 h-4" />
-                                Upload Tour
-                            </>
-                        )}
-                    </button>
+                    {uploading ? (
+                        <div className="w-full mt-6 bg-zinc-800 rounded-lg overflow-hidden h-10 relative">
+                            <div
+                                className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-300 ease-out"
+                                style={{ width: `${progress}%` }}
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center text-white font-medium text-sm drop-shadow-md">
+                                Uploading... {progress}%
+                            </div>
+                        </div>
+                    ) : (
+                        <button
+                            type="submit"
+                            disabled={uploading}
+                            className="w-full mt-6 py-2 px-4 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Upload className="w-4 h-4" />
+                            Upload Tour
+                        </button>
+                    )}
                 </form>
             </div>
         </div>
