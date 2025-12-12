@@ -35,7 +35,20 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
             onUploadSuccess();
             onClose();
         } catch (err) {
-            setError(err.response?.data?.detail || "Upload failed");
+            console.error("Upload error:", err);
+            if (err.response) {
+                if (err.response.status === 413) {
+                    setError("File is too large. Maximum size is 200MB.");
+                } else if (err.response.data && err.response.data.detail) {
+                    setError(err.response.data.detail);
+                } else {
+                    setError(`Upload failed (${err.response.status})`);
+                }
+            } else if (err.request) {
+                setError("Network error. Please check your connection.");
+            } else {
+                setError("Upload failed. Please try again.");
+            }
         } finally {
             setUploading(false);
         }
