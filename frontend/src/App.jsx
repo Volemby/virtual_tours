@@ -22,8 +22,16 @@ function App() {
         try {
             await axios.get('/api/v1/auth/me');
             setIsAuthenticated(true);
+            // If we are at /login (visually or actually) and logged in, go to /
+            if (window.location.pathname === '/login') {
+                window.history.replaceState(null, '', '/');
+            }
         } catch (error) {
             setIsAuthenticated(false);
+            // If not logged in, show /login in URL
+            if (window.location.pathname !== '/login') {
+                window.history.replaceState(null, '', '/login');
+            }
         } finally {
             setIsLoadingAuth(false);
         }
@@ -33,6 +41,7 @@ function App() {
         try {
             await axios.post('/api/v1/auth/logout');
             setIsAuthenticated(false);
+            window.history.replaceState(null, '', '/login');
         } catch (error) {
             console.error('Logout failed:', error);
         }
@@ -51,7 +60,10 @@ function App() {
     }
 
     if (!isAuthenticated) {
-        return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
+        return <Login onLoginSuccess={() => {
+            setIsAuthenticated(true);
+            window.history.replaceState(null, '', '/');
+        }} />;
     }
 
     return (
