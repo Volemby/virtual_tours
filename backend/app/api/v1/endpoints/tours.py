@@ -48,6 +48,65 @@ async def upload_tour(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.put("/{tour_id}", response_model=TourResponse)
+async def update_tour(
+    tour_id: str,
+    newTourId: str = Form(None),
+    tourZip: UploadFile = File(None),
+    coverPhoto: UploadFile = File(None)
+):
+    """
+    Update an existing tour (rename, replace zip, update cover).
+    """
+    try:
+        current_id = tour_id
+        
+        # 1. Rename if requested
+        if newTourId and newTourId != tour_id:
+            sanitized_new_id = FileManager.sanitize_id(newTourId)
+            FileManager.rename_tour(tour_id, sanitized_new_id)
+            current_id = sanitized_new_id
+
+        # 2. Replace Zip if provided
+        if tourZip:
+            # We enforce overwrite=True since we are updating
+            await FileManager.save_tour(current_id, tourZip, overwrite=True)
+
+        # 3. Update Cover if provided
+        if coverPhoto:
+            await FileManager.save_cover(current_id, coverPhoto)
+
+        # Return updated tour data
+        # Fetch fresh data to ensure we have correct mainFile etc
+        tour_path = FileManager.get_tour_path(current_id)
+        main_file = FileManager.get_main_html_file(tour_path)
+        
+        # Get cover url
+        cover_path = FileManager.get_cover_path(current_id)
+        cover_url = None
+        if cover_path:
+             filename = cover_path.split('/')[-1]
+             cover_url = f"/covers/{filename}"
+
+        return TourResponse(
+            success=True,
+            message="Tour updated successfully",
+            data=Tour(
+                id=current_id,
+                name=current_id.replace('_', ' ').replace('-', ' ').title(),
+                url=f"/tours/{current_id}/{main_file}" if main_file else "",
+                mainFile=main_file or "", 
+                coverUrl=cover_url
+            )
+        )
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.delete("/{tour_id}", response_model=TourResponse)
 async def delete_tour(tour_id: str):
     """

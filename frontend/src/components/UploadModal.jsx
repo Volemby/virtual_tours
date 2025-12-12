@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Upload, Loader2, AlertCircle } from 'lucide-react';
 import client from '../api/client';
 
-export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
+export default function UploadModal({ isOpen, onClose, onUploadSuccess, initialData }) {
     const [tourId, setTourId] = useState('');
     const [tourZip, setTourZip] = useState(null);
     const [coverPhoto, setCoverPhoto] = useState(null);
@@ -11,34 +11,80 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
 
     const [progress, setProgress] = useState(0);
 
+    const isEditing = !!initialData;
+
+    // Initialize state when initialData changes
+    // We use a key or this effect pattern. Since the modal is conditionally rendered in App with isOpen, 
+    // actually we should rely on the component remounting or state sync. 
+    // Given App.jsx renders <UploadModal ... initialData={editingTour} />, if we close it destroys?
+    // Let's assume it might not if purely CSS hidden, but App.jsx uses:
+    // { isModalOpen && <UploadModal ... /> } ? No, it passes isOpen prop. 
+    // So the component stays mounted but hidden/shown? 
+    // Checking App.jsx: <UploadModal isOpen={isModalOpen} ... />
+    // It's always mounted. So we need useEffect to sync state when isOpen or initialData changes.
+    React.useEffect(() => {
+        if (isOpen) {
+            if (initialData) {
+                setTourId(initialData.id);
+                setTourZip(null); // Reset files
+                setCoverPhoto(null);
+            } else {
+                setTourId('');
+                setTourZip(null);
+                setCoverPhoto(null);
+            }
+            setError(null);
+            setProgress(0);
+        }
+    }, [isOpen, initialData]);
+
     if (!isOpen) return null;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!tourId || !tourZip || !coverPhoto) {
-            setError("All fields are required");
+
+        // Validation
+        if (!tourId) {
+            setError("Tour ID is required");
+            return;
+        }
+        if (!isEditing && (!tourZip || !coverPhoto)) {
+            setError("All fields are required for new tours");
             return;
         }
 
         const formData = new FormData();
-        formData.append('tourId', tourId);
-        formData.append('tourZip', tourZip);
-        formData.append('coverPhoto', coverPhoto);
+        // For edit, we might send 'newTourId' if it changed
+        if (isEditing) {
+            if (tourId !== initialData.id) {
+                formData.append('newTourId', tourId);
+            }
+        } else {
+            formData.append('tourId', tourId);
+        }
+
+        if (tourZip) formData.append('tourZip', tourZip);
+        if (coverPhoto) formData.append('coverPhoto', coverPhoto);
 
         setUploading(true);
         setProgress(0);
         setError(null);
 
         try {
-            await client.post('/tours/', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
+            const config = {
+                headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: (progressEvent) => {
                     const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
                     setProgress(percentCompleted);
                 },
-            });
+            };
+
+            if (isEditing) {
+                await client.put(`/tours/${initialData.id}`, formData, config);
+            } else {
+                await client.post('/tours/', formData, config);
+            }
+
             onUploadSuccess();
             onClose();
         } catch (err) {
@@ -66,7 +112,9 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden">
                 <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/50">
-                    <h2 className="text-lg font-semibold text-white">New Virtual Tour</h2>
+                    <h2 className="text-lg font-semibold text-white">
+                        {isEditing ? 'Edit Virtual Tour' : 'New Virtual Tour'}
+                    </h2>
                     <button onClick={onClose} className="p-1 hover:bg-zinc-800 rounded-lg transition-colors">
                         <X className="w-5 h-5 text-zinc-400" />
                     </button>
@@ -94,7 +142,9 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-sm font-medium text-zinc-300">Tour ZIP File</label>
+                        <label className="text-sm font-medium text-zinc-300">
+                            Tour ZIP File {isEditing && <span className="text-zinc-500 font-normal">(Optional)</span>}
+                        </label>
                         <div className="relative group">
                             <input
                                 type="file"
@@ -106,7 +156,9 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-sm font-medium text-zinc-300">Cover Photo</label>
+                        <label className="text-sm font-medium text-zinc-300">
+                            Cover Photo {isEditing && <span className="text-zinc-500 font-normal">(Optional)</span>}
+                        </label>
                         <input
                             type="file"
                             accept="image/*"
@@ -122,7 +174,7 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
                                 style={{ width: `${progress}%` }}
                             />
                             <div className="absolute inset-0 flex items-center justify-center text-white font-medium text-sm drop-shadow-md">
-                                Uploading... {progress}%
+                                {isEditing ? 'Updating...' : 'Uploading...'} {progress}%
                             </div>
                         </div>
                     ) : (
@@ -132,7 +184,7 @@ export default function UploadModal({ isOpen, onClose, onUploadSuccess }) {
                             className="w-full mt-6 py-2 px-4 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Upload className="w-4 h-4" />
-                            Upload Tour
+                            {isEditing ? 'Update Tour' : 'Upload Tour'}
                         </button>
                     )}
                 </form>
