@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  virtualtours_backend:
+    build: 
+      context: ./backend
+    container_name: virtualtours_backend
+    environment:
+      - TOURS_DIR=/app/tours
+      - COVERS_DIR=/app/covers
+    volumes:
+      - ./tours:/app/tours
+      - ./covers:/app/covers
+    networks:
+      - caddy_net
+    expose:
+      - "4000"
+    restart: unless-stopped
+
+  virtualtours_frontend:
+    build: 
+      context: ./frontend
+    container_name: virtualtours_frontend
+    depends_on:
+      - virtualtours_backend
+    networks:
+      - caddy_net
+    expose:
+      - "5173"
+    restart: unless-stopped
+
+networks:
+  caddy_net:
+    external: true

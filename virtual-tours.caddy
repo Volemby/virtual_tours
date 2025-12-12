@@ -1,0 +1,3 @@
+virtualtours.cecite.cz {
+    reverse_proxy virtualtours_frontend:5173
+}
