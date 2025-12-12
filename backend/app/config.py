@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     # CORS
     BACKEND_CORS_ORIGINS: list[str] = ["*"]  # For development, tighten in prod
 
+    # Auth
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "super-secret-key-change-it")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 days
+
     class Config:
         case_sensitive = True
 
