@@ -2,6 +2,7 @@ import os
 import shutil
 import zipfile
 import re
+import aiofiles
 from fastapi import UploadFile, HTTPException
 from app.config import settings
 from app.schemas.tour import Tour
