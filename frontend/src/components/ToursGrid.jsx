@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Trash2, ExternalLink } from 'lucide-react';
+import { Trash2, ExternalLink, Pencil } from 'lucide-react';
 import client from '../api/client';
 
-export default function ToursGrid({ refreshTrigger }) {
+export default function ToursGrid({ refreshTrigger, onEdit }) {
     const [tours, setTours] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -66,13 +66,22 @@ export default function ToursGrid({ refreshTrigger }) {
                                 View <ExternalLink className="w-3 h-3" />
                             </a>
 
-                            <button
-                                onClick={() => handleDelete(tour.id)}
-                                className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-full transition-colors"
-                                title="Delete Tour"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => onEdit(tour)}
+                                    className="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded-full transition-colors"
+                                    title="Edit Tour"
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(tour.id)}
+                                    className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-full transition-colors"
+                                    title="Delete Tour"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -81,7 +90,8 @@ export default function ToursGrid({ refreshTrigger }) {
                         <p className="text-zinc-500 text-xs mt-1 font-mono uppercase tracking-wider">{tour.id}</p>
                     </div>
                 </div>
-            ))}
-        </div>
+            ))
+            }
+        </div >
     );
 }

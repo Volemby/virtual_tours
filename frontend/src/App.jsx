@@ -14,6 +14,8 @@ function App() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+    const [editingTour, setEditingTour] = useState(null);
+
     useEffect(() => {
         checkAuth();
     }, []);
@@ -49,6 +51,22 @@ function App() {
 
     const handleUploadSuccess = () => {
         setRefreshTrigger(prev => prev + 1);
+        closeModal();
+    };
+
+    const openUploadModal = () => {
+        setEditingTour(null);
+        setIsModalOpen(true);
+    };
+
+    const openEditModal = (tour) => {
+        setEditingTour(tour);
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setEditingTour(null);
     };
 
     if (isLoadingAuth) {
@@ -80,7 +98,7 @@ function App() {
 
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={() => setIsModalOpen(true)}
+                            onClick={openUploadModal}
                             className="flex items-center gap-2 px-4 py-2 bg-zinc-100 text-zinc-950 hover:bg-white hover:scale-105 active:scale-95 font-medium text-sm rounded-full transition-all shadow-xl shadow-white/5"
                         >
                             <Plus className="w-4 h-4" />
@@ -105,13 +123,14 @@ function App() {
                     <p className="text-zinc-400 mt-1">Manage and view your virtual tour collection</p>
                 </div>
 
-                <ToursGrid refreshTrigger={refreshTrigger} />
+                <ToursGrid refreshTrigger={refreshTrigger} onEdit={openEditModal} />
             </main>
 
             <UploadModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={closeModal}
                 onUploadSuccess={handleUploadSuccess}
+                initialData={editingTour}
             />
         </div>
     );

@@ -109,12 +109,15 @@ class FileManager:
         return f"/covers/{tour_id}.{ext}"
 
     @staticmethod
-    async def save_tour(tour_id: str, zip_file: UploadFile):
+    async def save_tour(tour_id: str, zip_file: UploadFile, overwrite: bool = False):
         tour_path = FileManager.get_tour_path(tour_id)
         
         # Check existence
         if os.path.exists(tour_path):
-             raise HTTPException(status_code=400, detail="Tour ID already exists")
+            if overwrite:
+                shutil.rmtree(tour_path)
+            else:
+                raise HTTPException(status_code=400, detail="Tour ID already exists")
 
         # Create temp zip path
         temp_zip = os.path.join(settings.TOURS_DIR, f"{tour_id}_temp.zip")
@@ -171,6 +174,29 @@ class FileManager:
             shutil.rmtree(tour_path)
             raise HTTPException(status_code=400, detail="No HTML file found in ZIP")
 
+        return True
+
+    @staticmethod
+    def rename_tour(old_id: str, new_id: str):
+        old_path = FileManager.get_tour_path(old_id)
+        new_path = FileManager.get_tour_path(new_id)
+
+        if not os.path.exists(old_path):
+             raise HTTPException(status_code=404, detail="Tour not found")
+
+        if os.path.exists(new_path):
+             raise HTTPException(status_code=400, detail="New Tour ID already exists")
+
+        # Rename directory
+        shutil.move(old_path, new_path)
+
+        # Rename cover if exists
+        old_cover_path = FileManager.get_cover_path(old_id)
+        if old_cover_path:
+            ext = old_cover_path.split('.')[-1]
+            new_cover_path = os.path.join(settings.COVERS_DIR, f"{new_id}.{ext}")
+            shutil.move(old_cover_path, new_cover_path)
+        
         return True
 
     @staticmethod
