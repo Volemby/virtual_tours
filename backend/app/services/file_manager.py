@@ -91,12 +91,18 @@ class FileManager:
         if old_cover_path:
             os.remove(old_cover_path)
             
+        # Check size
+        file.file.seek(0, 2)
+        size = file.file.tell()
+        file.file.seek(0)
+        
+        if size > settings.MAX_COVER_SIZE:
+             raise HTTPException(status_code=400, detail=f"Cover file too large (Max {settings.MAX_COVER_SIZE // (1024*1024)}MB)")
+
         # Save new
         target_path = os.path.join(settings.COVERS_DIR, f"{tour_id}.{ext}")
         async with aiofiles.open(target_path, 'wb') as out_file:
             content = await file.read()
-            if len(content) > settings.MAX_COVER_SIZE:
-                 raise HTTPException(status_code=400, detail="Cover file too large")
             await out_file.write(content)
             
         return f"/covers/{tour_id}.{ext}"
@@ -115,12 +121,17 @@ class FileManager:
         try:
             # Save Zip
             import aiofiles
+            # Check size before reading into memory
+            # Helper to get size
+            zip_file.file.seek(0, 2)
+            size = zip_file.file.tell()
+            zip_file.file.seek(0)
+            
+            if size > settings.MAX_TOUR_SIZE:
+                raise HTTPException(status_code=400, detail=f"Tour ZIP too large (Max {settings.MAX_TOUR_SIZE // (1024*1024)}MB)")
+
             async with aiofiles.open(temp_zip, 'wb') as out_file:
-                content = await zip_file.read() # Read entirely into memory? Limit check first ideally
-                # Logic gap: reading 100MB into memory might be okay, but streaming is better
-                # For simplicity in MVP, define size check
-                if len(content) > settings.MAX_TOUR_SIZE:
-                    raise HTTPException(status_code=400, detail="Tour ZIP too large")
+                content = await zip_file.read() 
                 await out_file.write(content)
 
             # Extract
