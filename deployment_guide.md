@@ -25,7 +25,7 @@
    *Ensure the content of `virtual-tours.caddy` is included in your global Caddyfile.*
 
 ## Verification
-- Visit `https://virtualtours.cecite.cz` (or your configured domain).
+- Visit `https://virtual-tours.vystavit.cz` (or your configured domain).
 - You should see the Virtual Tours Manager interface.
 - Try uploading a tour zip file and a cover photo.
 - Verify the tour loads correctly by clicking "View".
